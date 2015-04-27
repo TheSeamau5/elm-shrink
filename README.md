@@ -182,3 +182,54 @@ mario m =
 ```
 
 And, yay! We now can shrink `Mario`! No mushrooms needed!
+
+### One more technique
+
+Sometimes, you want to shrink a data structure but you know intuitively that
+it should shrink in a similar fashion to some other data structure. It would
+be nice if you could just convert back and from that other data structure and
+use its already existing shrinker.
+
+For example `List` and `Array`.
+
+In elm-shrink, there exists a `List` shrinker:
+
+```elm
+list : Shrinker a -> Shrinker (List a)
+```
+
+This shrinker is quite involved and does a number of things to shuffle elements,
+shrink some elements, preserve others, etc...
+
+It would be nice if that can be re-used for arrays, because in a high-level
+sense, arrays and lists are equivalent.
+
+This is exactly what elm-shrink does and it uses a function called `convert`.
+
+```elm
+convert : (a -> b) -> (b -> a) -> Shrinker a -> Shrinker b
+```
+
+`convert` converts a shrinker of a's into a shrinker of b's by taking a
+two functions to convert to and from b's.
+
+**IMPORTANT NOTE: Both functions must be perfectly invertible or else this
+process may create garbage**
+
+By invertible, I mean that `f` and `g` are invertible **if and only if**
+
+```elm
+f (g (x)) == x
+```
+
+**for all `x`.**
+
+Now we can very simply implement a shrinker of arrays as follows:
+
+```elm
+array : Shrinker a -> Shrinker (Array a)
+array shrinker =
+  convert (Array.fromList) (Array.toList) (list shrinker)
+```
+
+And, ta-da... 0 brain cells were used to get a shrinker or arrays.
