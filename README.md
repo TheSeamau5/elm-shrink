@@ -219,7 +219,7 @@ process may create garbage**
 By invertible, I mean that `f` and `g` are invertible **if and only if**
 
 ```elm
-f (g (x)) == x
+f (g x) == g (f x) == x
 ```
 
 **for all `x`.**
