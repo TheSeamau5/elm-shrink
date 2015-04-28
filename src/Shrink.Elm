@@ -37,13 +37,14 @@ import List
 import Array  exposing (Array)
 import Char
 import String
+import Lazy.List exposing (LazyList (..), empty, (:::), (+++), length, takeWhile, iterate, unique, isEmpty, take, drop, cons, flatMap)
 
 {-| Shrinker type.
 A shrinker is a function that takes a value and returns a list of values that
 are in some sense "smaller" than the given value. If there are no such values
 conceptually, then the shrinker should just return the empty list.
 -}
-type alias Shrinker a = a -> List a
+type alias Shrinker a = a -> LazyList a
 
 ---------------
 -- SHRINKERS --
@@ -52,7 +53,7 @@ type alias Shrinker a = a -> List a
 {-| Empty shrinker. Always returns the empty list.
 -}
 noShrink : Shrinker a
-noShrink _ = []
+noShrink _ = empty
 
 {-| Shrink the empty tuple. Equivalent to `noShrink`.
 -}
@@ -63,16 +64,16 @@ void = noShrink
 -}
 bool : Shrinker Bool
 bool b = case b of
-  True  -> [False]
-  False -> []
+  True  -> False ::: empty
+  False -> empty
 
 {-| Shrinker of Order.
 -}
 order : Shrinker Order
 order o = case o of
-  GT -> [EQ, LT]
-  LT -> [EQ]
-  EQ -> []
+  GT -> EQ ::: LT ::: empty --[EQ, LT]
+  LT -> EQ ::: empty --[EQ]
+  EQ -> empty
 
 
 {-| Shrinker of integers.
@@ -81,7 +82,8 @@ int : Shrinker Int
 int n =
   if n < 0
   then
-    -n :: List.map ((*) -1) (seriesInt 0 -n)
+    -n ::: map ((*) -1) (seriesInt 0 -n)
+    -- -n :: List.map ((*) -1) (seriesInt 0 -n)
   else
     seriesInt 0 n
 
@@ -91,7 +93,8 @@ float : Shrinker Float
 float n =
   if n < 0
   then
-    -n :: List.map ((*) -1) (seriesFloat 0 -n)
+    -n ::: map ((*) -1) (seriesFloat 0 -n)
+    -- -n :: List.map ((*) -1) (seriesFloat 0 -n)
   else
     seriesFloat 0 n
 
@@ -115,8 +118,10 @@ Takes a shrinker of values and returns a shrinker of Maybes.
 -}
 maybe : Shrinker a -> Shrinker (Maybe a)
 maybe shrink m = case m of
-  Just a  -> Nothing :: List.map Just (shrink a)
-  Nothing -> []
+  Just a  -> --Nothing :: List.map Just (shrink a)
+    Nothing ::: map Just (shrink a)
+  Nothing -> --[]
+    empty
 
 {-| Result shrinker constructor.
 Takes a shrinker of errors and a shrinker of values and returns a shrinker
@@ -124,13 +129,49 @@ of Results.
 -}
 result : Shrinker error -> Shrinker value -> Shrinker (Result error value)
 result shrinkError shrinkValue r = case r of
-  Ok value  -> List.map Ok  (shrinkValue value)
-  Err error -> List.map Err (shrinkError error)
+  Ok value  -> --List.map Ok  (shrinkValue value)
+    map Ok (shrinkValue value)
+  Err error -> --List.map Err (shrinkError error)
+    map Err (shrinkError error)
 
 {-| List shrinker constructor.
 Takes a shrinker of values and returns a shrinker of Lists.
 -}
+
+lazyList : Shrinker a -> Shrinker (LazyList a)
+lazyList shrink l =
+  let
+      -- n : Int
+      n = length l
+
+      shrinkOne l = case l of
+        Nil -> Nil
+        Cons first rest ->
+          let rest' = rest ()
+          in
+              map (flip (:::) rest') (shrink first)
+              +++ map ((:::) first) (shrinkOne rest')
+
+      removes k n l =
+        if | k > n     -> empty
+           | isEmpty l -> empty ::: empty
+           | otherwise ->
+              let
+                  first = take k l
+                  rest  = drop k l
+              in
+                  rest ::: map ((+++) first) (removes k (n - k) rest)
+
+  in
+      flatMap (\k -> removes k n l) (takeWhile (\x -> x > 0) (iterate (\n -> n // 2) n))
+      +++ shrinkOne l
+
 list : Shrinker a -> Shrinker (List a)
+list shrink =
+  convert Lazy.List.toList Lazy.List.fromList (lazyList shrink)
+
+
+{-list : (a -> List a) -> (List a -> List (List a))
 list shrink l =
   let
       -- n : Int
@@ -157,7 +198,7 @@ list shrink l =
   in
       List.concatMap (\k -> removes k n l) (takeWhile (\x -> x > 0) (iterate n (\n -> n // 2) n))
       ++ shrinkOne l
-
+-}
 
 {-| Array shrinker constructor.
 Takes a shrinker of values and returns a shrinker of Arrays.
@@ -309,7 +350,8 @@ Or else this process will generate garbage.
 -}
 convert : (a -> b) -> (b -> a) -> Shrinker a -> Shrinker b
 convert f f' shrink b =
-  List.map f (shrink (f' b))
+  map f (shrink (f' b))
+--  List.map f (shrink (f' b))
 
 
 {-| Re-export of `List.map`
@@ -332,9 +374,9 @@ Example:
         `andMap` float z
 
 -}
-map : (a -> b) -> List a -> List b
+map : (a -> b) -> LazyList a -> LazyList b
 map =
-  List.map
+  Lazy.List.map
 
 
 {-| Apply a list of functions on a list of values.
@@ -344,35 +386,39 @@ map =
 This is useful in order to compose shrinkers, especially when used in
 conjunction with `andMap`.
 -}
-andMap : List (a -> b) -> List a -> List b
+andMap : LazyList (a -> b) -> LazyList a -> LazyList b
 andMap =
-  List.map2 (<|)
+  Lazy.List.andMap
+--  List.map2 (<|)
 
 
 -----------------------
 -- PRIVATE FUNCTIONS --
 -----------------------
-seriesInt : Int -> Int -> List Int
+seriesInt : Int -> Int -> LazyList Int
 seriesInt low high =
-  if | low >= high -> []
-     | low == high - 1 -> [low]
+  if | low >= high -> empty --[]
+     | low == high - 1 -> low ::: empty --[low]
      | otherwise ->
         let
             low' = low + ((high - low) // 2)
         in
-            low :: seriesInt low' high
+            --low :: seriesInt low' high
+            low ::: seriesInt low' high
 
-seriesFloat : Float -> Float -> List Float
+seriesFloat : Float -> Float -> LazyList Float
 seriesFloat low high =
   if low >= high - 0.0001
   then
-    []
+    --[]
+    empty
   else
     let low' = low + ((high - low) / 2)
     in
-      low :: seriesFloat low' high
+      --low :: seriesFloat low' high
+      low ::: seriesFloat low' high
 
-
+{-}
 unique : List a -> List a
 unique list = case list of
   [] -> []
@@ -400,3 +446,4 @@ iterate n f a =
     []
   else
     a :: iterate (n - 1) f (f a)
+-}
