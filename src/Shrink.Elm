@@ -37,6 +37,7 @@ import List
 import Array  exposing (Array)
 import Char
 import String
+import Trampoline exposing (Trampoline(..), trampoline)
 
 {-| Shrinker type.
 A shrinker is a function that takes a value and returns a list of values that
@@ -354,6 +355,20 @@ andMap =
 -----------------------
 seriesInt : Int -> Int -> List Int
 seriesInt low high =
+  trampoline (seriesInt' low high [])
+
+seriesInt' low high accum =
+  if | low >= high -> Done accum
+     | low == high - 1 -> Done (accum ++ [low])
+     | otherwise ->
+        let
+            low' = low + ((high - low) // 2)
+        in
+            Continue (\() -> seriesInt' low' high (accum ++ [low]))
+
+
+
+{-seriesInt low high =
   if | low >= high -> []
      | low == high - 1 -> [low]
      | otherwise ->
@@ -361,9 +376,25 @@ seriesInt low high =
             low' = low + ((high - low) // 2)
         in
             low :: seriesInt low' high
+-}
+
 
 seriesFloat : Float -> Float -> List Float
 seriesFloat low high =
+  trampoline (seriesFloat' low high [])
+
+seriesFloat' low high accum =
+  if low >= high - 0.0001
+  then
+    Done accum
+  else
+    let
+        low' = low + ((high - low) / 2)
+    in
+        Continue (\() -> seriesFloat' low' high (accum ++ [low]))
+
+
+{-seriesFloat low high =
   if low >= high - 0.0001
   then
     []
@@ -371,7 +402,7 @@ seriesFloat low high =
     let low' = low + ((high - low) / 2)
     in
       low :: seriesFloat low' high
-
+-}
 
 unique : List a -> List a
 unique list = case list of
@@ -383,20 +414,28 @@ unique list = case list of
     else
       x :: unique xs
 
+
 takeWhile : (a -> Bool) -> List a -> List a
-takeWhile pred list = case list of
-  []  -> []
+takeWhile predicate list =
+  trampoline (takeWhile' predicate list [])
+
+takeWhile' predicate list accum = case list of
+  [] ->
+    Done accum
   x :: xs ->
-    if pred x
+    if predicate x
     then
-      x :: takeWhile pred xs
+      Continue (\() -> takeWhile' predicate xs (accum ++ [x]))
     else
-      []
+      Done accum
 
 iterate : Int -> (a -> a) -> a -> List a
 iterate n f a =
+  trampoline (iterate' n f a [])
+
+iterate' n f a accum =
   if n <= 0
   then
-    []
+    Done accum
   else
-    a :: iterate (n - 1) f (f a)
+    Continue (\() -> iterate' (n - 1) f (f a) (accum ++ [a]))
