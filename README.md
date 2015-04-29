@@ -61,7 +61,7 @@ and how it is implemented.
 
 To shrink a `Bool`, you have to consider the possible values of `Bool`: `True`
 and `False`. Intuitively, we understand that `False` is more "minimal"
-than `True`. As, such, we would shrink `False` to `True`. As for `False`,
+than `True`. As, such, we would shrink `True` to `False`. As for `False`,
 there is no value that is more "minimal" than `False`. As such, we simply
 shrink it to the empty list.
 
