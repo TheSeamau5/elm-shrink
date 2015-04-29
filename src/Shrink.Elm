@@ -172,6 +172,7 @@ array shrink =
 {-| 2-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
+tuple : (Shrinker a, Shrinker b) -> Shrinker (a, b)
 tuple (shrinkA, shrinkB) (a, b) =
      List.map ((,) a) (shrinkB b)
   ++ List.map (flip (,) b) (shrinkA a)
@@ -182,6 +183,7 @@ tuple (shrinkA, shrinkB) (a, b) =
 {-| 3-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
+tuple3 : (Shrinker a, Shrinker b, Shrinker c) -> Shrinker (a, b)
 tuple3 (shrinkA, shrinkB, shrinkC) (a, b, c) =
      List.map  (\c   -> (a,b,c)) (shrinkC c)
   ++ List.map  (\b   -> (a,b,c)) (shrinkB b)
@@ -196,6 +198,7 @@ tuple3 (shrinkA, shrinkB, shrinkC) (a, b, c) =
 {-| 4-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
+tuple4 : (Shrinker a, Shrinker b, Shrinker c, Shrinker d) -> Shrinker (a, b, c, d)
 tuple4 (shrinkA, shrinkB, shrinkC, shrinkD) (a, b, c, d) =
      List.map  (\d     -> (a,b,c,d)) (shrinkD d)
   ++ List.map  (\c     -> (a,b,c,d)) (shrinkC c)
@@ -219,6 +222,7 @@ tuple4 (shrinkA, shrinkB, shrinkC, shrinkD) (a, b, c, d) =
 {-| 5-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
+tuple5 : (Shrinker a, Shrinker b, Shrinker c, Shrinker d, Shrinker e) -> Shrinker (a, b, c, d, e)
 tuple5 (shrinkA, shrinkB, shrinkC, shrinkD, shrinkE) (a, b, c, d, e) =
      List.map  (\e       -> (a,b,c,d,e)) (shrinkE e)
   ++ List.map  (\d       -> (a,b,c,d,e)) (shrinkD d)
