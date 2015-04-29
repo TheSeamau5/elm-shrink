@@ -9,6 +9,7 @@ module Shrink
   , char
   , string
   , maybe
+  , result
   , list
   , array
   , tuple
@@ -26,7 +27,7 @@ helper functions to help you construct shrinking strategies.
 @docs Shrinker
 
 # Shrinkers
-@docs noShrink, void, bool, order, int, float, char, string, maybe, list, array, tuple, tuple3, tuple4, tuple5
+@docs noShrink, void, bool, order, int, float, char, string, maybe, result, list, array, tuple, tuple3, tuple4, tuple5
 
 # Useful functions
 @docs convert, map, andMap
@@ -171,34 +172,16 @@ array shrink =
 {-| 2-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
-tuple : (Shrinker a, Shrinker b) -> Shrinker (a, b)
-tuple (shrinkA, shrinkB) (a, b) =
-  (,)
-    `map`    shrinkA a
-    `andMap` shrinkB b
-
-{- Long-form shrinker. To be considered for CI testing.
-
 tuple (shrinkA, shrinkB) (a, b) =
      List.map ((,) a) (shrinkB b)
   ++ List.map (flip (,) b) (shrinkA a)
   ++ List.map2 (,) (shrinkA a) (shrinkB b)
--}
 
 
 
 {-| 3-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
-tuple3 : (Shrinker a, Shrinker b, Shrinker c) -> Shrinker (a, b, c)
-tuple3 (shrinkA, shrinkB, shrinkC) (a, b, c) =
-  (,,)
-    `map`    shrinkA a
-    `andMap` shrinkB b
-    `andMap` shrinkC c
-
-{- Long-form shrinker. To be considered for CI testing.
-
 tuple3 (shrinkA, shrinkB, shrinkC) (a, b, c) =
      List.map  (\c   -> (a,b,c)) (shrinkC c)
   ++ List.map  (\b   -> (a,b,c)) (shrinkB b)
@@ -207,24 +190,12 @@ tuple3 (shrinkA, shrinkB, shrinkC) (a, b, c) =
   ++ List.map2 (\a c -> (a,b,c)) (shrinkA a) (shrinkC c)
   ++ List.map2 (\a b -> (a,b,c)) (shrinkA a) (shrinkB b)
   ++ List.map3 (,,) (shrinkA a)  (shrinkB b) (shrinkC c)
--}
+
 
 
 {-| 4-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
-tuple4 : (Shrinker a, Shrinker b, Shrinker c, Shrinker d) -> Shrinker (a, b, c, d)
-tuple4 (shrinkA, shrinkB, shrinkC, shrinkD) (a, b, c, d) =
-  (,,,)
-    `map`    shrinkA a
-    `andMap` shrinkB b
-    `andMap` shrinkC c
-    `andMap` shrinkD d
-
-
-
-{- Long-form shrinker. To be considered for CI testing.
-
 tuple4 (shrinkA, shrinkB, shrinkC, shrinkD) (a, b, c, d) =
      List.map  (\d     -> (a,b,c,d)) (shrinkD d)
   ++ List.map  (\c     -> (a,b,c,d)) (shrinkC c)
@@ -240,7 +211,6 @@ tuple4 (shrinkA, shrinkB, shrinkC, shrinkD) (a, b, c, d) =
   ++ List.map3 (\a c d -> (a,b,c,d)) (shrinkA a) (shrinkC c) (shrinkD d)
   ++ List.map3 (\a b c -> (a,b,c,d)) (shrinkA a) (shrinkB b) (shrinkC c)
   ++ List.map4 (,,,)     (shrinkA a) (shrinkB b) (shrinkC c) (shrinkD d)
--}
 
 
 
@@ -249,19 +219,6 @@ tuple4 (shrinkA, shrinkB, shrinkC, shrinkD) (a, b, c, d) =
 {-| 5-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
-tuple5 : (Shrinker a, Shrinker b, Shrinker c, Shrinker d, Shrinker e) -> Shrinker (a, b, c, d, e)
-tuple5 (shrinkA, shrinkB, shrinkC, shrinkD, shrinkE) (a, b, c, d, e) =
-  (,,,,)
-    `map`    shrinkA a
-    `andMap` shrinkB b
-    `andMap` shrinkC c
-    `andMap` shrinkD d
-    `andMap` shrinkE e
-
-
-
-{- Long-form shrinker. To be considered for CI testing.
-
 tuple5 (shrinkA, shrinkB, shrinkC, shrinkD, shrinkE) (a, b, c, d, e) =
      List.map  (\e       -> (a,b,c,d,e)) (shrinkE e)
   ++ List.map  (\d       -> (a,b,c,d,e)) (shrinkD d)
@@ -289,7 +246,7 @@ tuple5 (shrinkA, shrinkB, shrinkC, shrinkD, shrinkE) (a, b, c, d, e) =
   ++ List.map4 (\a b d e -> (a,b,c,d,e)) (shrinkA a) (shrinkB b) (shrinkD d) (shrinkE e)
   ++ List.map4 (\a b c d -> (a,b,c,d,e)) (shrinkA a) (shrinkB b) (shrinkC c) (shrinkD d)
   ++ List.map5 (,,,,)        (shrinkA a) (shrinkB b) (shrinkC c) (shrinkD d) (shrinkE e)
--}
+
 
 
 ----------------------
