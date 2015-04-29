@@ -183,7 +183,7 @@ tuple (shrinkA, shrinkB) (a, b) =
 {-| 3-Tuple shrinker constructor.
 Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
-tuple3 : (Shrinker a, Shrinker b, Shrinker c) -> Shrinker (a, b)
+tuple3 : (Shrinker a, Shrinker b, Shrinker c) -> Shrinker (a, b, c)
 tuple3 (shrinkA, shrinkB, shrinkC) (a, b, c) =
      List.map  (\c   -> (a,b,c)) (shrinkC c)
   ++ List.map  (\b   -> (a,b,c)) (shrinkB b)
