@@ -403,18 +403,6 @@ seriesInt' low high accum =
             Continue (\() -> seriesInt' low' high (accum ++ [low]))
 
 
-
-{-seriesInt low high =
-  if | low >= high -> []
-     | low == high - 1 -> [low]
-     | otherwise ->
-        let
-            low' = low + ((high - low) // 2)
-        in
-            low :: seriesInt low' high
--}
-
-
 seriesFloat : Float -> Float -> List Float
 seriesFloat low high =
   trampoline (seriesFloat' low high [])
@@ -429,16 +417,6 @@ seriesFloat' low high accum =
     in
         Continue (\() -> seriesFloat' low' high (accum ++ [low]))
 
-
-{-seriesFloat low high =
-  if low >= high - 0.0001
-  then
-    []
-  else
-    let low' = low + ((high - low) / 2)
-    in
-      low :: seriesFloat low' high
--}
 
 unique : List a -> List a
 unique list = case list of
