@@ -5,8 +5,12 @@ module Shrink
   , bool
   , order
   , int
+  , atLeastInt
   , float
+  , atLeastFloat
   , char
+  , atLeastChar
+  , character
   , string
   , maybe
   , result
@@ -19,6 +23,8 @@ module Shrink
   , convert
   , map
   , andMap
+  , keepIf
+  , dropIf
   ) where
 {-| Library containing a collection of basic shrinking strategies and
 helper functions to help you construct shrinking strategies.
@@ -27,10 +33,10 @@ helper functions to help you construct shrinking strategies.
 @docs Shrinker
 
 # Shrinkers
-@docs noShrink, void, bool, order, int, float, char, string, maybe, result, list, array, tuple, tuple3, tuple4, tuple5
+@docs noShrink, void, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, list, array, tuple, tuple3, tuple4, tuple5
 
 # Useful functions
-@docs convert, map, andMap
+@docs convert, keepIf, dropIf, map, andMap
 
 -}
 
@@ -87,6 +93,17 @@ int n =
   else
     seriesInt 0 n
 
+{-| Construct a shrinker of ints which considers the given int to
+be most minimal.
+-}
+atLeastInt : Int -> Shrinker Int
+atLeastInt min n =
+  if n < 0 && n >= min
+  then
+    -n :: List.map ((*) -1) (seriesInt 0 -n)
+  else
+    seriesInt (max 0 min) n
+
 {-| Shrinker of floats.
 -}
 float : Shrinker Float
@@ -98,18 +115,53 @@ float n =
     seriesFloat 0 n
 
 
+{-| Construct a shrinker of floats which considers the given float to
+be most minimal.
+-}
+atLeastFloat : Float -> Shrinker Float
+atLeastFloat min n =
+  if n < 0 && n >= min
+  then
+    -n :: List.map ((*) -1) (seriesFloat 0 -n)
+  else
+    seriesFloat (max 0 min) n
+
+
 {-| Shrinker of chars.
 -}
 char : Shrinker Char
 char =
   convert Char.fromCode Char.toCode int
 
+{-| Construct a shrinker of chars which considers the given char to
+be most minimal.
+-}
+atLeastChar : Char -> Shrinker Char
+atLeastChar char =
+  convert Char.fromCode Char.toCode (atLeastInt (Char.toCode char))
 
-{-| Shrinker of strings.
+{-| Shrinker of chars which considers the empty space as the most
+minimal char and omits the control key codes.
+
+Equivalent to:
+
+    atLeastChar (Char.fromCode 32)
+-}
+character : Shrinker Char
+character =
+  atLeastChar (Char.fromCode 32)
+
+
+{-| Shrinker of strings. Considers the empty string to be the most
+minimal string and the space to be the most minimal char.
+
+Equivalent to:
+
+    convert String.fromList String.toList (list character)
 -}
 string : Shrinker String
 string =
-  convert String.fromList String.toList (list char)
+  convert String.fromList String.toList (list character)
 
 
 {-| Maybe shrinker constructor.
@@ -272,6 +324,21 @@ Or else this process will generate garbage.
 convert : (a -> b) -> (b -> a) -> Shrinker a -> Shrinker b
 convert f f' shrink b =
   List.map f (shrink (f' b))
+
+
+{-| Filter out the results of a shrinker. The resulting shrinker
+will only produce shrinks which satisfy the given predicate.
+-}
+keepIf : (a -> Bool) -> Shrinker a -> Shrinker a
+keepIf predicate shrink a =
+  List.filter (predicate) (shrink a)
+
+{-| Filter out the results of a shrinker. The resulting shrinker
+will only throw away shrinks which satisfy the given predicate.
+-}
+dropIf : (a -> Bool) -> Shrinker a -> Shrinker a
+dropIf predicate =
+  keepIf (not << predicate)
 
 
 {-| Re-export of `List.map`
