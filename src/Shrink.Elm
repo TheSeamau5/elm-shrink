@@ -25,6 +25,7 @@ module Shrink
   , andMap
   , keepIf
   , dropIf
+  , merge
   ) where
 {-| Library containing a collection of basic shrinking strategies and
 helper functions to help you construct shrinking strategies.
@@ -36,7 +37,7 @@ helper functions to help you construct shrinking strategies.
 @docs noShrink, void, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, list, array, tuple, tuple3, tuple4, tuple5
 
 # Useful functions
-@docs convert, keepIf, dropIf, map, andMap
+@docs convert, keepIf, dropIf, map, andMap, merge
 
 -}
 
@@ -340,6 +341,13 @@ dropIf : (a -> Bool) -> Shrinker a -> Shrinker a
 dropIf predicate =
   keepIf (not << predicate)
 
+
+{-| Merge two shrinkers.
+-}
+merge : Shrinker a -> Shrinker a -> Shrinker a
+merge shrink1 shrink2 a =
+  unique
+    (shrink1 a ++ shrink2 a)
 
 {-| Re-export of `List.map`
 This is useful in order to compose shrinkers, especially when used in
