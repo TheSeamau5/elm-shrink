@@ -5,10 +5,12 @@ shrinking strategy, or shrinker is a way of taking a value and producing a
 list of values which are, some sense, more minimal than the original value.
 
 In more practical terms, a shrinker is simply a function that takes a value
-and produces a list of those values.
+and produces a lazy list of those values.
+
+Note: As of version 3.0.0, elm-shrink uses lazy lists instead of lists. This means that elm-shrink has a direct dependency on [TheSeamau5/elm-lazy-list](https://github.com/TheSeamau5/elm-lazy-list)
 
 ```elm
-type alias Shrinker a = a -> List a
+type alias Shrinker a = a -> LazyList a
 ```
 
 Shrinking is heavily used in property-based testing as a way to shrink
@@ -30,14 +32,14 @@ int 10 == [0,5,7,8,9]
 **Shrink a String**
 
 ```elm
-string "Hello World" ==
+string "Hello World" == 
   [""," World","Hellod","llo World","Heo World","HellWorld","Hello rld","Hello Wod","ello World","Hllo World","Helo World","Helo World","Hell World","HelloWorld","Hello orld","Hello Wrld","Hello Wold","Hello Word","Hello Worl","\0ello World","$ello World","6ello World","?ello World","Cello World","Eello World","Fello World","Gello World","H\0llo World","H2llo World","HKllo World","HXllo World","H^llo World","Hallo World","Hcllo World","Hdllo World","He\0lo World","He6lo World","HeQlo World","He^lo World","Heelo World","Hehlo World","Hejlo World","Heklo World","Hel\0o World","Hel6o World","HelQo World","Hel^o World","Heleo World","Helho World","Heljo World","Helko World","Hell\0 World","Hell7 World","HellS World","Hella World","Hellh World","Hellk World","Hellm World","Helln World","Hello\0World","HelloWorld","HelloWorld","HelloWorld","HelloWorld","HelloWorld","Hello \0orld","Hello +orld","Hello Aorld","Hello Lorld","Hello Qorld","Hello Torld","Hello Uorld","Hello Vorld","Hello W\0rld","Hello W7rld","Hello WSrld","Hello Warld","Hello Whrld","Hello Wkrld","Hello Wmrld","Hello Wnrld","Hello Wo\0ld","Hello Wo9ld","Hello WoUld","Hello Wocld","Hello Wojld","Hello Wonld","Hello Wopld","Hello Woqld","Hello Wor\0d","Hello Wor6d","Hello WorQd","Hello Wor^d","Hello Wored","Hello Worhd","Hello Worjd","Hello Workd","Hello Worl\0","Hello Worl2","Hello WorlK","Hello WorlW","Hello Worl]","Hello Worl`","Hello Worlb","Hello Worlc"]
 ```
 
 **Shrink a Maybe Float**
 
 ```elm
-maybe float (Just 3.14) ==
+maybe float (Just 3.14) == 
   [Nothing,Just 0,Just 1.57,Just 2.355,Just 2.7475,Just 2.94375,Just 3.041875,Just 3.0909375,Just 3.11546875,Just 3.127734375,Just 3.1338671875,Just 3.1369335937500002,Just 3.138466796875,Just 3.1392333984375,Just 3.1396166992187498,Just 3.1398083496093747]
 ```
 
@@ -68,8 +70,8 @@ shrink it to the empty list.
 ```elm
 bool : Shrinker Bool
 bool b = case b of
-  True  -> [False]
-  False -> []
+  True  -> False ::: empty
+  False -> empty
 ```
 
 *Note that there is no "exact" rule to deciding on whether something is more
@@ -163,8 +165,8 @@ And for `Direction`, we can apply a similar approach to our `Bool` example:
 ```elm
 direction : Shrinker Direction
 direction dir = case dir of
-  Left  -> []
-  Right -> [Left]
+  Left  -> empty
+  Right -> Left ::: empty
 ```
 
 Where `Left` here is considered the "minimal" case.
